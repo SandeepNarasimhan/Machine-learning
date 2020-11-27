@@ -1,0 +1,106 @@
+---
+title: "Practical Machine Learning"
+author: "Sandeep"
+date: "27/11/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(caret)
+library(ggcorrplot)
+library(hrbrthemes)
+library(janitor)
+library(tidyverse)
+```
+
+## Summary
+Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement – a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. In this project, your goal will be to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways. More information is available from the website here: http://web.archive.org/web/20161224072740/http:/groupware.les.inf.puc-rio.br/har (see the section on the Weight Lifting Exercise Dataset).
+
+### Data
+
+```{r}
+training <- read.csv("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv",
+                     na.strings=c("NA","#DIV/0!"))
+testing <- read.csv("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv",
+                    na.strings=c("NA","#DIV/0!"))
+```
+
+## PreProcess
+
+Removing columns of missing data, we could have imputed missing values but here i am removing columns with missing values.
+```{r pressure, echo=FALSE}
+dim(training)
+dim(testing)
+
+table(training$classe)
+
+##missing values
+missing_data <- data.frame(sapply(training, function(x)(sum(is.na(x)))))
+
+colnames(missing_data) <- "mi"
+
+missing_col <- missing_data %>% 
+  filter(mi > 0) %>% 
+  rownames()
+
+train <- training %>% 
+  select(!all_of(missing_col))
+dim(train)
+```
+
+
+```{r}
+tabyl(train$classe)
+```
+
+
+## Explanatoy data analysis
+
+```{r, warning = FALSE, message=FALSE}
+rownames(data.frame(sapply(train, class)) %>% 
+  filter(sapply.train..class. %in% c("integer", "numeric")))
+  
+  
+correlation <- cor(train %>% 
+                     select(rownames(data.frame(sapply(train, class)) %>% 
+                                       filter(sapply.train..class. %in% c("integer", "numeric")))
+                     ))
+ggcorrplot(correlation, ggtheme = theme_modern_rc(), method = "circle")
+```
+
+
+## Modeling
+
+```{r}
+set.seed(2225)
+
+Trcont <- trainControl(method="cv",
+                   number=2,
+                   allowParallel=TRUE,
+                   verboseIter=FALSE)
+
+model <- train(classe~., data = train, method = "rf",
+               trControl = Trcont, preProcess = "pca")
+
+modtree = train(classe~.,data=train,method="rpart",trControl=Trcont)
+```
+
+## Prediction
+
+```{r}
+pred1 <- predict(model,train)
+table(pred1,train$classe)
+
+pred <- predict(modtree,training)
+```
+
+
+## predicting for testing set
+
+```{r}
+predict(model,testing)
+```
+
+## conclusion
+Random forest model performed better than regression model
